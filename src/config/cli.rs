@@ -1,4 +1,4 @@
-use crate::command::NewCommand;
+use crate::command::{BuildCommand, NewCommand};
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
 use color_eyre::Result;
@@ -58,62 +58,6 @@ pub struct Opts {
     /// Minify javascript assets with swc. Applies to release builds only.
     #[arg(long, default_value = "true", value_parser=clap::builder::BoolishValueParser::new(), action = clap::ArgAction::Set)]
     pub js_minify: bool,
-
-    #[command(flatten)]
-    #[serde(flatten)]
-    pub bin_opts: BinOpts,
-
-    #[command(flatten)]
-    #[serde(flatten)]
-    pub lib_opts: LibOpts,
-}
-
-#[derive(Debug, Clone, Parser, PartialEq, Default, Deserialize, Serialize)]
-pub struct BinOpts {
-    /// The features to use when compiling the bin target, in a comma seperated list
-    #[arg(long,value_parser, num_args=1.., value_delimiter=',')]
-    pub bin_features: Vec<String>,
-
-    /// The cargo flags to pass to cargo when compiling the bin target, in a comma seperated list
-    #[arg(long, value_parser, num_args=1.., value_delimiter=',')]
-    pub bin_cargo_args: Option<Vec<String>>,
-
-    /// The command to use to run the build step. Defaults to `cargo` but could be something like
-    /// `cargo cross` or `cargo px` for example
-    #[arg(long, default_value = "cargo")]
-    pub bin_cargo_command: Option<String>,
-
-    /// The path to the root for the bin crate. Defaults to current root for single crate
-    #[arg(long, default_value= OsStr::new("./"))]
-    pub bin_root_path: Utf8PathBuf,
-
-    /// The target triple to use for bin compilation
-    #[arg(long)]
-    pub bin_target_triple: Option<String>,
-}
-#[derive(Debug, Clone, Parser, PartialEq, Default, Deserialize, Serialize)]
-
-pub struct LibOpts {
-    /// The features to use when compiling the lib target, in a comma seperated list
-    #[arg(long,value_parser, num_args=1.., value_delimiter=',')]
-    pub lib_features: Vec<String>,
-
-    /// The cargo flags to pass to cargo when compiling the lib target, in a comma seperated list
-    #[arg(long,value_parser, num_args=1.., value_delimiter=',')]
-    pub lib_cargo_args: Option<Vec<String>>,
-
-    /// The command to use to run the build step. Defaults to `cargo` but could be something like
-    /// `cargo cross` or `cargo px` for example
-    #[arg(long, default_value = "cargo")]
-    pub lib_cargo_command: Option<String>,
-
-    /// The path to the root for the lib crate. Defaults to current root for single crate
-    #[arg(long, default_value= OsStr::new("./"))]
-    pub lib_root_path: Utf8PathBuf,
-
-    /// The target triple to use for lib compilation
-    #[arg(long, default_value = "wasm32-unknown-unknown")]
-    pub lib_target_triple: String,
 }
 
 #[derive(Debug, Parser, Clone, Serialize, Deserialize)]
@@ -124,12 +68,9 @@ pub struct Cli {
     #[arg(long, default_value= OsStr::new("./Cargo.toml"))]
     pub manifest_path: Utf8PathBuf,
 
-    /// Name of Lib/frontend crate
-    #[arg(long, default_value=None)]
-    pub lib_crate_name: Option<String>,
-    /// Name of Bin/server crate
-    #[arg(long, default_value=None)]
-    pub bin_crate_name: Option<String>,
+    /// Path to Leptos.toml.
+    #[arg(long)]
+    pub config: Option<Utf8PathBuf>,
 
     /// Output logs from dependencies (multiple --log accepted).
     #[arg(long)]
@@ -154,7 +95,8 @@ impl Cli {
 #[derive(Debug, Clone, Deserialize, Serialize, Subcommand, PartialEq)]
 pub enum Commands {
     /// Build the server (feature ssr) and the client (wasm with feature hydrate).
-    Build,
+    #[command(subcommand)]
+    Build(BuildCommand),
     /// Run the cargo tests for app, client and server.
     Test,
     /// Start the server and end-2-end tests.
@@ -166,4 +108,3 @@ pub enum Commands {
     /// Start a wizard for creating a new project (using cargo-generate).
     New(NewCommand),
 }
-

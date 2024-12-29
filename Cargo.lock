@@ -578,6 +578,7 @@ dependencies = [
  "tar",
  "temp-dir",
  "tokio",
+ "toml",
  "wasm-bindgen-cli-support",
  "wasm-bindgen-shared",
  "watchexec",

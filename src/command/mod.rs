@@ -5,7 +5,7 @@ mod new;
 // mod test;
 // pub mod watch;
 
-pub use build::build_all;
+pub use build::BuildCommand;
 // pub use end2end::end2end_all;
 pub use new::NewCommand;
 // pub use serve::serve;

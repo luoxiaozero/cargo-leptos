@@ -89,6 +89,7 @@ xshell = "0.2.6"
 dialoguer = "0.11.0"
 current_platform = "0.2.0"
 cargo-generate = "0.22.0"
+toml = "0.8.19"
 
 [dev-dependencies]
 insta = { version = "1.31.0", features = ["yaml"] }
@@ -107,3 +108,7 @@ lto = "thin"
 log = ["Wasm"]
 release=true
 bin_features = ["test"]
+
+[[bin]]
+path = "src/main.rs"
+name = "leptos"

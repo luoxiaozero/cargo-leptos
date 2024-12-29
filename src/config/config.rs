@@ -1,60 +1,43 @@
-use cargo_metadata::MetadataCommand;
+use super::BuildConfig;
+use camino::Utf8PathBuf;
+use color_eyre::{eyre::eyre, Result};
+use serde::{Deserialize, Serialize};
 
-use super::{BinConfig, Cli, LibConfig};
-
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    is_workspace: bool,
-    bin_config: Option<BinConfig>,
-    lib_config: Option<LibConfig>,
+    #[serde(default)]
+    pub release: bool,
+    #[serde(default)]
+    pub build: BuildConfig,
 }
 
-impl From<Cli> for Config {
-    fn from(cli: Cli) -> Self {
-        if cli.opts.bin_only ^ cli.opts.lib_only {
-            if cli.opts.bin_only {
-                // Generate BinConfig from Cli and from BinOpts
-                let bin_config = cli.generate_bin_config();
-
-                Self {
-                    lib_config: None,
-                    bin_config: Some(bin_config),
-                    is_workspace: cli.opts.is_workspace,
-                }
-            } else {
-                // Generate LibConfig from Cli and from LibOpts
-                let lib_config = cli.generate_lib_config();
-                Self {
-                    bin_config: None,
-                    lib_config: Some(lib_config),
-                    is_workspace: cli.opts.is_workspace,
-                }
-            }
-        } else {
-            let lib_config = cli.generate_lib_config();
-            let bin_config = cli.generate_bin_config();
-
-            Self {
-                bin_config: Some(bin_config),
-                lib_config: Some(lib_config),
-                is_workspace: cli.opts.is_workspace,
-            }
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            release: false,
+            build: Default::default(),
         }
     }
 }
 
-impl Cli {
-    pub fn generate_bin_config(&self) -> BinConfig {
-        // let metadata = MetadataCommand::new()
-        //     .manifest_path(&self.manifest_path)
-        //     .exec()
-        //     .expect("Failed to read Cargo.toml at manifest-path. Are you sure it's valid?");
-        BinConfig {}
-    }
-    pub fn generate_lib_config(&self) -> LibConfig {
-        // let metadata = MetadataCommand::new()
-        //     .manifest_path(&self.manifest_path)
-        //     .exec()
-        //     .expect("Failed to read Cargo.toml at manifest-path. Are you sure it's valid?");
-        LibConfig {}
+impl Config {
+    pub fn load(root_path: Utf8PathBuf, leptos_path: &Option<Utf8PathBuf>) -> Result<Self> {
+        let config_file = if let Some(leptos_path) = leptos_path {
+            let config = root_path.join(leptos_path);
+            config.is_file().then_some(config)
+        } else {
+            ["Leptos.toml", "leptos.toml"]
+                .into_iter()
+                .map(|file| root_path.join(file))
+                .find(|path| path.is_file())
+        };
+
+        let Some(leptos_config_file) = config_file else {
+            return Result::Ok(Config::default());
+        };
+
+        toml::from_str::<Config>(&std::fs::read_to_string(&leptos_config_file)?).map_err(|err| {
+            eyre!("Failed to parse Leptos.toml at {leptos_config_file:?}: {err}").into()
+        })
     }
 }
